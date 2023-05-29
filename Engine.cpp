@@ -24,7 +24,7 @@ void Engine::reset() {
         {
             if(rand()%10 == 1)//Bomb
             {
-                gems.emplace_back(new Bomb( u, v, static_cast<Gem::Type>(rand() % 7), textureBomb, Gem::gemState::NONE));
+                gems.emplace_back(new Bomb( u, v, static_cast<Gem::Type>(rand() % 7), textureBomb, Gem::gemState::NONE,&gems));
             }
             else if(rand()%25 == 2)//Paint
             {
@@ -40,20 +40,20 @@ void Engine::reset() {
 void Engine::click(const sf::Vector2f& curpos) {
     if(enginestate != engineState::WAITING && enginestate != engineState::SELECTED) return;
     for (auto& gem : gems) {
-        if(gem.checkClick(curpos)) {
+        if(gem->checkClick(curpos)) {
             if(enginestate == engineState::SELECTED)
             {
                 clearMatchChance();
                 sel2 = gem->getRow()*columns + gem->getColumn();
                 auto& neighbour = gems[sel1];
-                if((abs(gem->getColumn()-neighbour->getColumn()) + abs(gem.getRow()-neighbour.getRow())) != 1) break;
+                if((abs(gem->getColumn()-neighbour->getColumn()) + abs(gem->getRow()-neighbour->getRow())) != 1) break;
 
                 std::iter_swap(&gem, &neighbour);
-                neighbour.swapGems(gem);
+                neighbour->swapGems(*gem);
                 setEngineState(engineState::SWAPPING);
             } else {
-                sel1 = gem.getRow()*columns + gem.getColumn();
-                gem.setGemState(Gem::gemState::SELECTED);
+                sel1 = gem->getRow()*columns + gem->getColumn();
+                gem->setGemState(Gem::gemState::SELECTED);
                 setEngineState(engineState::SELECTED);
             }
             break;
@@ -95,9 +95,9 @@ int Engine::match() {
         for (int u = 0; u < columns; ++u, ++gem)
         {
             if(u > 0 && u < (columns - 1))
-                match += match3(&*gem, &*(gem+1), &*(gem-1));
+                match += match3(&**gem, &**(gem+1), &**(gem-1));
             if(v > 0 && v < (rows - 1))
-                match += match3(&*gem, &*(gem+columns), &*(gem-columns));
+                match += match3(&**gem, &**(gem+columns), &**(gem-columns));
         }
     }
     return match;
@@ -120,13 +120,13 @@ bool Engine::checkMatchEvent(Gem *gem_one, Gem *gem_two, Gem *gem_three, bool ch
 void Engine::replaceDeleted()
 {
     for(auto gem = gems.begin(); gem != gems.end(); ++gem) {
-        if (gem->getGemState() == Gem::gemState::DELETED) {
+        if (gem.operator*()->getGemState() == Gem::gemState::DELETED) {
             if(rand()%10 == 1)
-                *gem = Gem(gem->getColumn(), gem->getRow(), static_cast<Gem::Type>(rand() % 7), textureBomb, Gem::gemState::NEW);
+                *gem.operator*() = Gem(gem.operator*()->getColumn(), gem.operator*()->getRow(), static_cast<Gem::Type>(rand() % 7), textureBomb, Gem::gemState::NEW);
             else if(rand()%25 == 2)
-                *gem = Gem(gem->getColumn(), gem->getRow(), static_cast<Gem::Type>(rand() % 7), textureBrush, Gem::gemState::NEW);
+                *gem.operator*() = Gem(gem.operator*()->getColumn(), gem.operator*()->getRow(), static_cast<Gem::Type>(rand() % 7), textureBrush, Gem::gemState::NEW);
             else
-                *gem = Gem(gem->getColumn(), gem->getRow(), static_cast<Gem::Type>(rand() % 7), textureGem, Gem::gemState::NEW);
+                *gem.operator*() = Gem(gem.operator*()->getColumn(), gem.operator*()->getRow(), static_cast<Gem::Type>(rand() % 7), textureGem, Gem::gemState::NEW);
 
         }
     }
@@ -136,13 +136,13 @@ bool Engine::transition()
 {
     bool transiting = false;
     for(auto gem = gems.rbegin(); gem != gems.rend(); gem++) {
-        if (gem->getGemState() != Gem::gemState::DELETED) continue;
-        if (gem->getRow() == 0) break;
+        if (gem.operator*()->getGemState() != Gem::gemState::DELETED) continue;
+        if (gem.operator*()->getRow() == 0) break;
         transiting = true;
-        for (int row = 1; row <= gem->getRow(); row++) {
-            if ((gem+(columns*row))->getGemState() != Gem::gemState::DELETED) {
+        for (int row = 1; row <= gem.operator*()->getRow(); row++) {
+            if ((gem+(columns*row)).operator*()->getGemState() != Gem::gemState::DELETED) {
                 std::iter_swap(gem, (gem+(columns*row)));
-                gem->swapGems(*(gem+(columns*row)));
+                gem.operator*()->swapGems(*(gem+(columns*row)).operator*());
                 break;
             }
         }
@@ -157,7 +157,7 @@ bool Engine::findMatchChance(bool chance) {
     clearMatchChance();
     for (int v = rows-1; v >= 0; v--) {
         for (int u = 0; u < columns; u++) {
-            Gem* gem = &gems[v*columns + u];
+            Gem* gem = gems[v*columns + u];
             Gem::Type color = gem->getType();
 
             //   3
@@ -216,8 +216,8 @@ bool Engine::findMatchChance(bool chance) {
 void Engine::update() {
     if (enginestate == engineState::WAITING) {
         for (auto &gem: gems)
-            if (gem.getGemState() == Gem::gemState::NEW)
-                gem.setGemState(Gem::gemState::NONE);
+            if (gem->getGemState() == Gem::gemState::NEW)
+                gem->setGemState(Gem::gemState::NONE);
 
         int matchGem = match();
         if(matchGem > 0)
@@ -231,7 +231,7 @@ void Engine::update() {
     if (enginestate == engineState::MOVING || enginestate == engineState::SWAPPING) {
         bool moving = false;
         for (auto& gem : gems) {
-            Gem::gemState newGemState = gem.gemStateUpdate();
+            Gem::gemState newGemState = gem->gemStateUpdate();
             if (newGemState == Gem::gemState::MOVING) moving = true;
         }
         if (!moving) {
@@ -241,7 +241,7 @@ void Engine::update() {
                     auto& gem = gems[sel1];
                     auto& neighbour = gems[sel2];
                     std::iter_swap(&gem, &neighbour);
-                    neighbour.swapGems(gem);
+                    neighbour->swapGems(*gem);
                 }
                 setEngineState(engineState::MOVING);
             } else {
