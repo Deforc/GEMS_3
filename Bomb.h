@@ -5,10 +5,14 @@
 
 class Bomb : public Gem{
 public:
-    Bomb(int column, int row, Type type, sf::Texture& texture, gemState state, std::vector<Gem*>* gems) : Gem(column, row, type, texture, state) {
+    Bomb(int column, int row, Type type, sf::Texture& texture, gemState state, std::vector<Gem*>* gems)
+    : Gem(column, row, type, texture, state) {
         this->gems = gems;
     }
+    ~Bomb() = default;
+
     void uniqueAction() override;
+
 private:
     std::vector<Gem*>* gems;
 };

@@ -10,6 +10,8 @@ class Game {
 public:
     Game() : font(), gameOverText("GAME OVER!", font, 80)
     { gameOverText.setFillColor(sf::Color::Black); }
+    ~Game() = default;
+
     bool init(unsigned int width, unsigned int height);
     void run();
 

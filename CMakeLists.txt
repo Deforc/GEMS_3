@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 project(GEMS_3)
-add_executable(GEMS_3 main.cpp Gem.cpp Gem.h Engine.cpp Engine.h Game.cpp Game.h Bomb.cpp Bomb.h)
+add_executable(GEMS_3 main.cpp Gem.cpp Gem.h Engine.cpp Engine.h Game.cpp Game.h Bomb.cpp Bomb.h Brush.cpp Brush.h)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

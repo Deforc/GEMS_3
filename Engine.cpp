@@ -22,15 +22,15 @@ void Engine::reset() {
     for (int v = 0; v < rows; ++v)
         for(int u = 0; u < columns; ++u)
         {
-            if(rand()%10 == 1)//Bomb
+            if(rand()%25 == 1)//Bomb
             {
                 gems.emplace_back(new Bomb( u, v, static_cast<Gem::Type>(rand() % 7), textureBomb, Gem::gemState::NONE,&gems));
             }
-            else if(rand()%25 == 2)//Paint
+            else if(rand()%25 == 2)//Brush
             {
-                gems.emplace_back(new Gem(u, v, static_cast<Gem::Type>(rand()%7), textureBrush, Gem::gemState::NONE));
+                gems.emplace_back(new Brush(u, v, static_cast<Gem::Type>(rand()%7), textureBrush, Gem::gemState::NONE, &gems));
             }
-            else
+            else//Gem
                 gems.emplace_back(new Gem(u, v, static_cast<Gem::Type>(rand()%7), textureGem, Gem::gemState::NONE));
         }
 
@@ -60,7 +60,7 @@ void Engine::click(const sf::Vector2f& curpos) {
         }
     }
 }
-int Engine::match3(Gem *gem_one, Gem *gem_two, Gem *gem_three) {
+int Engine::checkMatch(Gem *gem_one, Gem *gem_two, Gem *gem_three) {
     if(gem_one->getGemState() != Gem::gemState::NONE && gem_one->getGemState() != Gem::gemState::MATCHED
         && gem_two->getGemState() != Gem::gemState::NONE && gem_two->getGemState() != Gem::gemState::MATCHED
         && gem_three->getGemState() != Gem::gemState::NONE && gem_three->getGemState() != Gem::gemState::MATCHED)
@@ -87,7 +87,7 @@ int Engine::match3(Gem *gem_one, Gem *gem_two, Gem *gem_three) {
     return match;
 }
 
-int Engine::match() {
+int Engine::checkMatchField() {
     int match = 0;
     auto gem = gems.begin();
     for(int v = 0; v < rows; ++v)
@@ -95,9 +95,9 @@ int Engine::match() {
         for (int u = 0; u < columns; ++u, ++gem)
         {
             if(u > 0 && u < (columns - 1))
-                match += match3(&**gem, &**(gem+1), &**(gem-1));
+                match += checkMatch(&**gem, &**(gem + 1), &**(gem - 1));
             if(v > 0 && v < (rows - 1))
-                match += match3(&**gem, &**(gem+columns), &**(gem-columns));
+                match += checkMatch(&**gem, &**(gem + columns), &**(gem - columns));
         }
     }
     return match;
@@ -116,22 +116,23 @@ bool Engine::checkMatchEvent(Gem *gem_one, Gem *gem_two, Gem *gem_three, bool ch
     }
     return false;
 }
-// Здесь надо менять, если другие текстуры --------------------------------------
+
 void Engine::replaceDeleted()
 {
+
     for(auto gem = gems.begin(); gem != gems.end(); ++gem) {
         if (gem.operator*()->getGemState() == Gem::gemState::DELETED) {
-            if(rand()%10 == 1)
-                *gem.operator*() = Gem(gem.operator*()->getColumn(), gem.operator*()->getRow(), static_cast<Gem::Type>(rand() % 7), textureBomb, Gem::gemState::NEW);
-            else if(rand()%25 == 2)
-                *gem.operator*() = Gem(gem.operator*()->getColumn(), gem.operator*()->getRow(), static_cast<Gem::Type>(rand() % 7), textureBrush, Gem::gemState::NEW);
-            else
+            if(rand()%25 == 1) //Bomb
+                *gem = new Bomb(gem.operator*()->getColumn(), gem.operator*()->getRow(), static_cast<Gem::Type>(rand() % 7), textureBomb, Gem::gemState::NEW, &gems);
+            else if(rand()%25 == 2) //Brush
+                *gem = new Brush(gem.operator*()->getColumn(), gem.operator*()->getRow(), static_cast<Gem::Type>(rand() % 7), textureBrush, Gem::gemState::NEW, &gems);
+            else //Gem
                 *gem.operator*() = Gem(gem.operator*()->getColumn(), gem.operator*()->getRow(), static_cast<Gem::Type>(rand() % 7), textureGem, Gem::gemState::NEW);
 
         }
     }
 }
-// ---------------------------------------------------------------------------------
+
 bool Engine::transition()
 {
     bool transiting = false;
@@ -151,59 +152,63 @@ bool Engine::transition()
     return transiting;
 }
 
-// СОздание функции для унификации и сокращения кода
 bool Engine::findMatchChance(bool chance) {
     if (enginestate != engineState::WAITING) return false;
     clearMatchChance();
     for (int v = rows-1; v >= 0; v--) {
         for (int u = 0; u < columns; u++) {
             Gem* gem = gems[v*columns + u];
-            Gem::Type color = gem->getType();
+            Gem::Type type = gem->getType();
 
             //   3
-            // 1 x 2
+            // 1 g 2
             //   3
-            if (u < columns-2 && (gem+2)->getType() == color) {
+            if (u < columns-2 && (gem+2)->getType() == type) {
                 if (v > 0 && checkMatchEvent(gem, gem + 2, gem + 1 - columns, chance)) return true;
                 if (v < rows-1 && checkMatchEvent(gem, gem + 2, gem + 1 + columns, chance)) return true;
             }
+
             //   1
-            // 3 x 3
+            // 3 g 3
             //   2
-            if (v < rows-2 && (gem+2*columns)->getType() == color) {
+            if (v < rows-2 && (gem+2*columns)->getType() == type) {
                 if (u > 0 && checkMatchEvent(gem, gem + 2 * columns, gem - 1 + columns, chance)) return true;
                 if (u < columns-1 && checkMatchEvent(gem, gem + 2 * columns, gem + 1 + columns, chance)) return true;
             }
+
             //     3
-            // 1 2 x 3
+            // 1 2 g 3
             //     3
-            if (u < columns-2 && (gem+1)->getType() == color) {
+            if (u < columns-2 && (gem+1)->getType() == type) {
                 if (v > 0 && checkMatchEvent(gem, gem + 1, gem + 2 - columns, chance)) return true;
                 if (v < rows-1 && checkMatchEvent(gem, gem + 1, gem + 2 + columns, chance)) return true;
                 if (u < columns-3 && checkMatchEvent(gem, gem + 1, gem + 3, chance)) return true;
             }
+
             //   3
-            // 3 x 2 1
+            // 3 g 2 1
             //   3
-            if (u > 1 && (gem-1)->getType() == color) {
+            if (u > 1 && (gem-1)->getType() == type) {
                 if (v > 0 && checkMatchEvent(gem, gem - 1, gem - 2 - columns, chance)) return true;
                 if (v < rows-1 && checkMatchEvent(gem, gem - 1, gem - 2 + columns, chance)) return true;
                 if (u > 2 && checkMatchEvent(gem, gem - 1, gem - 3, chance)) return true;
             }
+
             //   1
             //   2
-            // 3 x 3
+            // 3 g 3
             //   3
-            if (v < rows-2 && (gem+columns)->getType() == color) {
+            if (v < rows-2 && (gem+columns)->getType() == type) {
                 if (u > 0 && checkMatchEvent(gem, gem + columns, gem - 1 + 2 * columns, chance)) return true;
                 if (u < columns-1 && checkMatchEvent(gem, gem + columns, gem + 1 + 2 * columns, chance)) return true;
                 if (v < rows-3 && checkMatchEvent(gem, gem + columns, gem + 3 * columns, chance)) return true;
             }
+
             //   3
-            // 3 x 3
+            // 3 g 3
             //   2
             //   1
-            if (v > 1 && (gem-columns)->getType() == color) {
+            if (v > 1 && (gem-columns)->getType() == type) {
                 if (u > 0 && checkMatchEvent(gem, gem - columns, gem - 1 - 2 * columns, chance)) return true;
                 if (u < columns-1 && checkMatchEvent(gem, gem - columns, gem + 1 - 2 * columns, chance)) return true;
                 if (v > 2 && checkMatchEvent(gem, gem - columns, gem - 3 * columns, chance)) return true;
@@ -219,7 +224,7 @@ void Engine::update() {
             if (gem->getGemState() == Gem::gemState::NEW)
                 gem->setGemState(Gem::gemState::NONE);
 
-        int matchGem = match();
+        int matchGem = checkMatchField();
         if(matchGem > 0)
             setEngineState(engineState::MOVING);
         else if (transition())
@@ -236,7 +241,7 @@ void Engine::update() {
         }
         if (!moving) {
             if (enginestate == engineState::SWAPPING) {
-                int matchGem = match();
+                int matchGem = checkMatchField();
                 if (matchGem == 0) {
                     auto& gem = gems[sel1];
                     auto& neighbour = gems[sel2];
@@ -251,13 +256,6 @@ void Engine::update() {
     }
 
 
-}
-
-bool Engine::gameOver() {
-    if (enginestate == engineState::LOSING)
-        return true;
-    else
-        return false;
 }
 
 

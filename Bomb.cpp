@@ -10,7 +10,6 @@ void Bomb::uniqueAction() {
     if(row != Engine::getRows()-1)
         gems[0][row*Engine::getColumns() + column + Engine::getRows()]->setGemState(Gem::gemState::DELETED);
 
-
     std::cout << "BOOOOOM!" << std::endl;
 
 }

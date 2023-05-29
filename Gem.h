@@ -37,7 +37,7 @@ public:
     " ROW: "<< getRow() << " COLUMN: "<< getColumn() << std::endl; }
 
     static const sf::Vector2f size;
-    static constexpr int padding = 1; //Внутренний отступ, как в CSS
+    static constexpr int padding = 1;
     static constexpr int gemSize = 64;
 
 

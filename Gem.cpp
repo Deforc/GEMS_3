@@ -45,7 +45,6 @@ Gem::gemState Gem::gemStateUpdate() {
     switch (gemstate) {
         case gemState::MATCHED:
         {
-            //Вызвать uniqueAction
             uniqueAction();
             setGemState(gemState::DELETED);
             break;

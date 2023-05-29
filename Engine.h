@@ -6,18 +6,20 @@
 #include <algorithm>
 #include "Gem.h"
 #include "Bomb.h"
-
-
+#include "Brush.h"
 
  class Engine {
 public:
+    Engine() = default;
+    ~Engine() = default;
+
     bool initialisation();
     void draw(sf::RenderWindow& window);
     void reset();
     void click(const sf::Vector2f& curpos);
     void update();
     bool findMatchChance(bool chance);
-    bool gameOver();
+    bool gameOver() { return (enginestate == engineState::LOSING) ;};
 
     static constexpr int rows = 8;
     static constexpr int columns = 8;
@@ -25,24 +27,21 @@ public:
     static int getRows() {return rows;}
     static int getColumns() {return columns;}
 
-    Gem* getGem(int column, int row) {return gems[row*columns + column];}
 
 private:
     enum class engineState : int {WAITING, SELECTED, SWAPPING, MOVING, LOSING};
 
     void setEngineState (engineState newstate) { enginestate = newstate; }
 
-    int match();
-    int match3(Gem* gem_one, Gem* gem_two, Gem* gem_three);
+    int checkMatchField();
+    int checkMatch(Gem* gem_one, Gem* gem_two, Gem* gem_three);
     bool checkMatchEvent(Gem* gem_one, Gem* gem_two, Gem* gem_three, bool chance);
+    void clearMatchChance() { for (auto &gem : gems) gem->setMatchChance(false); }
 
     bool transition();
 
     void replaceDeleted();
-    void clearMatchChance() {
-        for (auto &gem : gems)
-            gem->setMatchChance(false);
-    }
+
 
 
     std::vector<Gem*> gems;
